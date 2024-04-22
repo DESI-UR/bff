@@ -1,0 +1,127 @@
+---
+title: "Compared_test"
+output: pdf_document
+date: "2024-04-08"
+---
+
+```{r}
+mean1 <- 0
+mean2 <- 0.7
+s_deviation <- 1
+samples1 <- rnorm(n = 50, mean = mean1, sd = s_deviation)
+samples2 <- rnorm(n = 50, mean = mean2, sd = s_deviation)
+
+pt_d_sample_test(samples1,samples2)
+log(pt_d_sample_test(samples1,samples2)$bf)
+
+hist(samples1, probability = TRUE, col = rgb(1,0,0,0.5), xlim = c(-4, 14), ylim = c(0, 0.5), main = "Histograms", xlab = "Value")
+lines(density(samples1), col = "red", lwd = 2)
+hist(samples2, probability = TRUE,  add = TRUE)
+lines(density(samples2), col = "blue", lwd = 2)
+legend("topright", legend = c("Distribution 1", "Distribution 2"), fill = c(rgb(1,0,0,0.5), rgb(0,0,1,0.5)))
+```
+
+
+```{r}
+# two sample KS test
+cdf1 <- ecdf(samples1)
+cdf2 <- ecdf(samples2)
+plot(cdf1, verticals = TRUE, do.points = FALSE, col.01line = NULL, xlab = "value", ylab = "CDF", main = "CDFs of KS test")
+lines(cdf2, verticals = TRUE, do.points = FALSE, col.01line = NULL, col = 4)
+x <- c(samples1,samples2)
+D <- max(abs(cdf1(x)-cdf2(x)))
+D
+result <- ks.test(samples1, samples2)
+result
+
+# two sample z test
+library(BSDA)
+z <- (mean1 - mean2) / sqrt((s_deviation)^2/50 + (s_deviation)^2/50)
+p <- 2 * pnorm(-abs(z))
+p
+
+#wilcoxon rank sum test
+wilcox.test(samples1, samples2)
+
+#Anderson darling test
+library(kSamples)
+test <- ad.test(samples1, samples2, method = "asymptotic")
+test
+#test$results$`asympt. P-value`["version 1"] 
+```
+
+
+```{r}
+n <- 50                    
+replications <- 1000      
+#critical_value <- 0.272     
+mean_values <- seq(0, 2, by = 0.1)  
+results1 <- numeric(length(mean_values))
+results2 <- numeric(length(mean_values))
+
+for (j in seq_along(mean_values)) {
+  count1 <- 0  
+  count2 <- 0
+  for (i in 1:replications) {
+
+    sample1 <- rnorm(n, mean = 0, sd = 1)
+    sample2 <- rnorm(n, mean = mean_values[j], sd = 1)
+
+    ks_test_result <- ks.test(sample1, sample2)
+    wilcox_result <- wilcox.test(sample1, sample2, correct = TRUE)
+  
+    if (ks_test_result$p.value <0.05) {
+      count1 <- count1 + 1
+    }
+    if ((wilcox_result$p.value) <0.05) {
+      count2 <- count2 + 1
+    }
+  }
+
+  results1[j] <- count1 / replications
+  results2[j] <- count2 / replications
+}
+
+plot(mean_values, results1, type = "o", col = "blue", pch = 19,
+     xlab = "theta", ylab = "Power",
+     main = "KS vs. Wilcoxon Test (mean shift)")
+lines(mean_values, results2, type = "o", col = "red", pch = 18)
+legend("topright", legend = c("KS Test", "Wilcoxon Test"), col = c("blue", "red"), pch = c(19, 18))
+```
+
+```{r}
+n <- 50                    
+replications <- 1000   
+sd_values <- seq(1, 5, by = 0.25)  
+results1 <- numeric(length(sd_values))
+results2 <- numeric(length(sd_values))
+
+for (j in seq_along(sd_values)) {
+  count1 <- 0  
+  count2 <- 0
+  for (i in 1:replications) {
+
+    sample1 <- rnorm(n, mean = 0, sd = 1)
+    sample2 <- rnorm(n, mean = 0, sd = sd_values[j])
+
+    ks_test_result <- ks.test(sample1, sample2)
+    wilcox_result <- wilcox.test(sample1, sample2, correct = TRUE)
+  
+    if (ks_test_result$p.value <0.05) {
+      count1 <- count1 + 1
+    }
+    if ((wilcox_result$p.value) <0.05) {
+      count2 <- count2 + 1
+    }
+  }
+  # Calculate the proportion of tests where D exceeded the critical value
+  results1[j] <- count1 / replications
+  results2[j] <- count2 / replications
+}
+
+plot(sd_values, results1, type = "o", col = "blue", pch = 19,
+     xlab = "theta", ylab = "Power",
+     main = "KS vs. Wilcoxon Test (variance shift)")
+lines(sd_values, results2, type = "o", col = "red", pch = 18)
+legend("topright", legend = c("KS Test", "Wilcoxon Test"), col = c("blue", "red"), pch = c(19, 18))
+```
