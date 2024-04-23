@@ -1,0 +1,144 @@
+---
+title: "Parametric Bayesian"
+output: pdf_document
+date: "2024-04-23"
+---
+
+```{r}
+set.seed(123)  
+samplesize <- 100
+data1 <- sample(x = 1:20, size = samplesize, replace = TRUE)
+data2 <- sample(x = 1:20, size = samplesize, replace = TRUE)
+
+bins <- floor(log2(samplesize)) + 1     #num of bins
+bins
+m_counts <- table(cut(data1, breaks = bins))
+n_counts <- table(cut(data2, breaks = bins))
+mi <- as.vector(m_counts)
+ni <- as.vector(n_counts)
+mi
+ni
+bins_data1 <- cut(data1, breaks = bins, include.lowest = TRUE)
+bins_data2 <- cut(data2, breaks = bins, include.lowest = TRUE)
+
+print(tapply(data1, bins_data1, list))
+print(tapply(data2, bins_data2, list))
+
+max_value <- max(c(data1, data2))
+min_value <- min(c(data1, data2))
+bin_width <- (max_value - min_value) / bins
+breaks <- seq(min_value, max_value, by = bin_width)
+
+lower_bounds <- breaks[-length(breaks)] 
+upper_bounds <- breaks[-1]   
+
+L <- c(0.981, 3.714286,6.428571 , 9.142857, 11.857143 ,14.571429, 17.285714)
+U <- c(3.714286,6.428571 , 9.142857, 11.857143 ,14.571429, 17.285714, 20.000000)
+
+
+hist(data1, breaks = breaks, main = "Histogram for data1", xlab = "Value", ylab = "Frequency", col = "blue", right = FALSE)
+
+hist(data2, breaks = breaks, main = "Histogram for data2", xlab = "Value", ylab = "Frequency", col = "red", right = FALSE)
+```
+
+
+
+# same parent
+```{r}
+lambda1 <- c()
+lambda2 <- c()
+pois <- c()
+likelihood <- 1
+log_likeli <- 0
+
+joint_poisson_log_likelihood <- function(params, mi, ni) {
+  mu <- params[1]
+  sigma <- params[2]
+  S <- params[3]
+  
+  
+  for (i in 1:length(mi)) {
+    lambda1[i] <- integrate(dnorm, L[i], U[i], mean = mu, sd = sigma)$value
+    lambda2[i] <- lambda1[i] * S
+    #pois[i] <- dpois(mi[i], lambda = lambda1[i], log = FALSE)* dpois(ni[i], lambda = lambda2[i], log = FALSE)
+    #likelihood <- likelihood*pois[i]
+    log_likeli <- log_likeli + (mi[i]*lambda1[i] - lambda1[i] - log(lfactorial(mi[i])) 
+                                + ni[i]*lambda2[i] - lambda2[i] - log(lfactorial(ni[i])))
+  }
+  
+  return(-log_likeli)
+}
+
+initial_params <- c(mu = 0, sigma = 1, S = 1)
+lower_bounds <- c(-Inf, 1e-6, 1e-6)
+
+optim_result <- optim(initial_params, joint_poisson_log_likelihood, mi=mi, ni=ni, method='L-BFGS-B', lower = lower_bounds)
+
+min_log_likelihood0 <- -optim_result$value
+mu_estimate <- optim_result$par[1]
+sigma_estimate <- optim_result$par[2]
+S_estimate <- optim_result$par[3]
+
+
+list(min_log_likelihood = min_log_likelihood0, 
+     mu = mu_estimate, 
+     sigma = sigma_estimate, 
+     S = S_estimate)
+
+
+```
+
+
+# two parents
+
+```{r}
+lambda1 <- c()
+lambda2 <- c()
+pois <- c()
+likelihood <- 1
+log_likeli <- 0
+
+joint_poisson_log_likelihood <- function(params, mi, ni) {
+  mu1 <- params[1]
+  sigma1 <- params[2]
+  mu2 <- params[3]
+  sigma2 <- params[4]
+  
+  
+  for (i in 1:length(mi)) {
+    lambda1[i] <- integrate(dnorm, L[i], U[i], mean = mu1, sd = sigma1)$value
+    lambda2[i] <- integrate(dnorm, L[i], U[i], mean = mu2, sd = sigma2)$value
+  # pois[i] <- dpois(mi[i], lambda1[i], log = FALSE)* dpois(ni[i], lambda2[i], log = FALSE)
+  #  likelihood <- likelihood*pois[i]
+    log_likeli <- log_likeli + mi[i]*lambda1[i] - lambda1[i] - log(lfactorial(mi[i])) 
+                                + ni[i]*lambda2[i] - lambda2[i] - log(lfactorial(ni[i]))
+  }
+  
+  return(-log_likeli)
+}
+
+initial_params <- c(mu1 = 0, sigma1 = 1, mu2 = 0, sigma2 = 1)
+lower_bounds <- c(-Inf, 1e-6, -Inf,1e-6, 1e-6)
+
+optim_result <- optim(initial_params, joint_poisson_log_likelihood, mi=mi, ni=ni, 
+                      method='L-BFGS-B', lower = lower_bounds)
+
+min_log_likelihood1 <- -optim_result$value
+mu1_estimate <- optim_result$par[1]
+sigma1_estimate <- optim_result$par[2]
+mu2_estimate <- optim_result$par[3]
+sigma2_estimate <- optim_result$par[4]
+
+
+list(min_log_likelihood = min_log_likelihood1, 
+     mu1 = mu1_estimate, 
+     sigma1 = sigma1_estimate, 
+     mu2 = mu2_estimate, 
+     sigma2 = sigma2_estimate)
+
+
+min_log_likelihood1/ min_log_likelihood0  #Bayes factor
+```
+
+
+
