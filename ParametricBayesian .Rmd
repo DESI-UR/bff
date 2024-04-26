@@ -22,7 +22,6 @@ ni <- as.vector(n_counts)
 
 # bins_data1 <- cut(data1, breaks = bins, include.lowest = TRUE)
 # bins_data2 <- cut(data2, breaks = bins, include.lowest = TRUE)
-# 
 # print(tapply(data1, bins_data1, list))
 # print(tapply(data2, bins_data2, list))
 
@@ -33,8 +32,6 @@ ni <- as.vector(n_counts)
 # 
 # lower_bounds <- breaks[-length(breaks)]
 # upper_bounds <- breaks[-1]
-
-
 
 L1 <- c(-13.1, -10,  -7,   -3.97 , -0.947, 2.08,  5.1, 8.13,  11.2,  14.2)
 U1 <- c(-10,   -7,  -3.97, -0.947,  2.08 , 5.1, 8.13,  11.2,  14.2,  17.2)
